@@ -1,0 +1,110 @@
+<!DOCTYPE html><html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Loja de Ebooks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:Arial,sans-serif;background:#f0f2f5;margin:0;}
+header{background:#1b1b1b;color:white;padding:20px;display:flex;justify-content:space-between;align-items:center;}
+header h1{margin:0;}
+button{padding:10px 15px;margin:5px;cursor:pointer;border:none;border-radius:6px;font-weight:bold;}
+button:hover{opacity:.85;}
+#products{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;padding:20px;}
+.product{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);text-align:left;}
+#loginArea,#registerArea{display:none;background:white;padding:20px;margin:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.review{background:#f5f5f5;padding:10px;margin:10px 0;border-radius:8px;}
+.star{color:gold;font-size:20px;cursor:pointer;}
+.star-gray{color:#ccc;font-size:20px;cursor:pointer;}
+.user-info{color:white;margin-left:10px;}
+</style>
+</head>
+<body><header>
+<h1>Loja de Ebooks</h1>
+<div>
+<button onclick="toggleLogin()">Logar</button>
+<span class="user-info" id="userInfo"></span>
+</div>
+</header><div id="loginArea">
+<h2>Login</h2>
+<input id="loginEmail" placeholder="Email"><br><br>
+<input id="loginSenha" type="password" placeholder="Senha"><br><br>
+<button onclick="login()">Entrar</button>
+<br><br>
+<button onclick="showRegister()">Criar nova conta</button>
+</div><div id="registerArea">
+<h2>Criar Conta</h2>
+<input id="regNome" placeholder="Nome"><br><br>
+<input id="regEmail" placeholder="Email"><br><br>
+<input id="regSenha" type="password" placeholder="Senha"><br><br>
+<input id="regSenha2" type="password" placeholder="Confirmar senha"><br><br>
+<button onclick="criarConta()">Criar conta</button>
+</div><div id="products"></div><script>
+let adminEmail = "lucasminecraft1107@gmail.com";
+let isAdmin=false;
+let produtos=[{id:1,nome:"Ebook Inteligência Artificial"},{id:2,nome:"Ebook Ganhar Dinheiro Online"}];
+let reviews = JSON.parse(localStorage.getItem("reviews")||"[]");
+
+function toggleLogin(){document.getElementById("loginArea").style.display=(document.getElementById("loginArea").style.display=="none"?"block":"none");}
+function showRegister(){document.getElementById("registerArea").style.display="block";}
+function criarConta(){
+let nome=regNome.value,email=regEmail.value,senha=regSenha.value,senha2=regSenha2.value;
+if(senha!=senha2){alert("Senhas não conferem");return;}
+let users=JSON.parse(localStorage.getItem("users")||"[]");
+users.push({nome,email,senha});
+localStorage.setItem("users",JSON.stringify(users));
+localStorage.setItem("logado",email);
+mostrarUsuario();alert("Conta criada!");}
+function login(){
+let email=loginEmail.value,senha=loginSenha.value;
+let users=JSON.parse(localStorage.getItem("users")||"[]");
+let user=users.find(u=>u.email==email&&u.senha==senha);
+if(user){localStorage.setItem("logado",email);mostrarUsuario();alert("Login feito!");}else{alert("Login inválido");}}
+function mostrarUsuario(){
+let email=localStorage.getItem("logado");if(!email) return;
+let users=JSON.parse(localStorage.getItem("users"));
+let user=users.find(u=>u.email==email);
+document.getElementById("userInfo").innerHTML="Logado como: "+user.nome;
+if(email==adminEmail)isAdmin=true;
+renderProdutos();}
+
+function renderProdutos(){
+let html="";
+produtos.forEach(p=>{
+let prodReviews=reviews.filter(r=>r.produto==p.id);
+let rating=prodReviews.reduce((a,b)=>a+b.stars,0)/Math.max(prodReviews.length,1);
+html+=`<div class="product"><h3>${p.nome}</h3>`;
+for(let i=1;i<=5;i++){html+=`<span class="${i<=rating?'star':'star-gray'}">&#9733;</span>`;}
+html+=`<br><button onclick="avaliar(${p.id})">Avaliar</button> <button onclick="verAvaliacoes(${p.id})">Ver avaliações</button>`;
+html+=`<div id="reviews_${p.id}"></div></div>`;
+});
+document.getElementById("products").innerHTML=html;
+}
+
+function avaliar(id){
+let email=localStorage.getItem("logado");
+if(!email){alert("Você precisa estar logado");return;}
+let texto=prompt("Escreva sua avaliação");
+if(!texto) return;
+let stars=parseInt(prompt("Dê uma nota de 1 a 5 estrelas"));
+let users=JSON.parse(localStorage.getItem("users"));
+let user=users.find(u=>u.email==email);
+reviews.push({produto:id,nome:user.nome,texto:texto,stars:stars});
+localStorage.setItem("reviews",JSON.stringify(reviews));
+alert("Avaliação enviada");renderProdutos();}
+
+function verAvaliacoes(id){
+let html="";
+let email=localStorage.getItem("logado");
+reviews.filter(r=>r.produto==id).forEach((r,i)=>{
+html+=`<div class="review"><b>${r.nome}</b> (${r.stars}★)<br>${r.texto}`;
+if(email==adminEmail)html+=`<br><button onclick="excluir(${i})">Excluir</button>`;
+html+=`</div>`;
+});
+document.getElementById("reviews_"+id).innerHTML=html;
+}
+function excluir(i){reviews.splice(i,1);localStorage.setItem("reviews",JSON.stringify(reviews));renderProdutos();}
+
+mostrarUsuario();
+renderProdutos();
+</script></body>
+</html>
