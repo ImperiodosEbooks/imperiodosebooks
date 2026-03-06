@@ -12,6 +12,8 @@ button:hover{opacity:.85;}
 #products{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;padding:20px;}
 .product{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);text-align:left;}
 #loginArea,#registerArea{display:none;background:white;padding:20px;margin:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+#adminLogin{display:none;background:white;padding:20px;margin:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+#adminPanel{display:none;background:white;padding:20px;margin:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
 .review{background:#f5f5f5;padding:10px;margin:10px 0;border-radius:8px;}
 .star{color:gold;font-size:20px;cursor:pointer;}
 .star-gray{color:#ccc;font-size:20px;cursor:pointer;}
@@ -22,6 +24,7 @@ button:hover{opacity:.85;}
 <h1>Loja de Ebooks</h1>
 <div>
 <button onclick="toggleLogin()">Logar</button>
+<button onclick="toggleAdminLogin()">Logar como ADM</button>
 <span class="user-info" id="userInfo"></span>
 </div>
 </header><div id="loginArea">
@@ -38,13 +41,35 @@ button:hover{opacity:.85;}
 <input id="regSenha" type="password" placeholder="Senha"><br><br>
 <input id="regSenha2" type="password" placeholder="Confirmar senha"><br><br>
 <button onclick="criarConta()">Criar conta</button>
+</div><div id="adminLogin">
+<h2>Login Administrador</h2>
+<input id="adminNome" placeholder="Nome"><br><br>
+<input id="adminEmailInput" placeholder="Email"><br><br>
+<input id="adminSenhaInput" type="password" placeholder="Senha"><br><br>
+<button onclick="loginAdmin()">Entrar</button>
+</div><div id="adminPanel">
+<h2>Adicionar Produto (Admin)</h2>
+<label>Título</label>
+<input id="title"><br>
+<label>Descrição</label>
+<textarea id="desc"></textarea><br>
+<label>Preço</label>
+<input id="price"><br>
+<label>Imagem (URL)</label>
+<input id="image"><br>
+<label>Link de pagamento</label>
+<input id="paylink" placeholder="https://pay.kiwify.com/..."><br>
+<button onclick="addProduct()">Adicionar Produto</button>
 </div><div id="products"></div><script>
-let adminEmail = "lucasminecraft1107@gmail.com";
+let adminNomeConst="Imperio dos Ebooks";
+let adminEmailConst = "lucasminecraft1107@gmail.com";
+let adminSenhaConst = "nda2602ll";
 let isAdmin=false;
 let produtos=[{id:1,nome:"Ebook Inteligência Artificial"},{id:2,nome:"Ebook Ganhar Dinheiro Online"}];
 let reviews = JSON.parse(localStorage.getItem("reviews")||"[]");
 
 function toggleLogin(){document.getElementById("loginArea").style.display=(document.getElementById("loginArea").style.display=="none"?"block":"none");}
+function toggleAdminLogin(){document.getElementById("adminLogin").style.display=(document.getElementById("adminLogin").style.display=="none"?"block":"none");}
 function showRegister(){document.getElementById("registerArea").style.display="block";}
 function criarConta(){
 let nome=regNome.value,email=regEmail.value,senha=regSenha.value,senha2=regSenha2.value;
@@ -59,14 +84,16 @@ let email=loginEmail.value,senha=loginSenha.value;
 let users=JSON.parse(localStorage.getItem("users")||"[]");
 let user=users.find(u=>u.email==email&&u.senha==senha);
 if(user){localStorage.setItem("logado",email);mostrarUsuario();alert("Login feito!");}else{alert("Login inválido");}}
+function loginAdmin(){
+let nome=adminNome.value,email=adminEmailInput.value,senha=adminSenhaInput.value;
+if(nome===adminNomeConst && email===adminEmailConst && senha===adminSenhaConst){isAdmin=true;document.getElementById("adminLogin").style.display="none";document.getElementById("adminPanel").style.display="block";alert("Logado como Administrador!");renderProdutos();}else{alert("Dados do Admin incorretos");}}
 function mostrarUsuario(){
-let email=localStorage.getItem("logado");if(!email) return;
+let email=localStorage.getItem("logado");
+if(!email) return;
 let users=JSON.parse(localStorage.getItem("users"));
 let user=users.find(u=>u.email==email);
 document.getElementById("userInfo").innerHTML="Logado como: "+user.nome;
-if(email==adminEmail)isAdmin=true;
-renderProdutos();}
-
+}
 function renderProdutos(){
 let html="";
 produtos.forEach(p=>{
@@ -79,31 +106,29 @@ html+=`<div id="reviews_${p.id}"></div></div>`;
 });
 document.getElementById("products").innerHTML=html;
 }
-
 function avaliar(id){
 let email=localStorage.getItem("logado");
 if(!email){alert("Você precisa estar logado");return;}
-let texto=prompt("Escreva sua avaliação");
-if(!texto) return;
+let texto=prompt("Escreva sua avaliação (máx. 100 caracteres)");
+if(!texto || texto.length>100){alert("Avaliação inválida ou maior que 100 caracteres");return;}
 let stars=parseInt(prompt("Dê uma nota de 1 a 5 estrelas"));
+if(stars<1) stars=1;if(stars>5) stars=5;
 let users=JSON.parse(localStorage.getItem("users"));
 let user=users.find(u=>u.email==email);
 reviews.push({produto:id,nome:user.nome,texto:texto,stars:stars});
 localStorage.setItem("reviews",JSON.stringify(reviews));
 alert("Avaliação enviada");renderProdutos();}
-
 function verAvaliacoes(id){
 let html="";
 let email=localStorage.getItem("logado");
 reviews.filter(r=>r.produto==id).forEach((r,i)=>{
 html+=`<div class="review"><b>${r.nome}</b> (${r.stars}★)<br>${r.texto}`;
-if(email==adminEmail)html+=`<br><button onclick="excluir(${i})">Excluir</button>`;
+if(isAdmin)html+=`<br><button onclick="excluir(${i})">Excluir</button>`;
 html+=`</div>`;
 });
 document.getElementById("reviews_"+id).innerHTML=html;
 }
-function excluir(i){reviews.splice(i,1);localStorage.setItem("reviews",JSON.stringify(reviews));renderProdutos();}
-
+function excluir(i){if(!isAdmin)return;reviews.splice(i,1);localStorage.setItem("reviews",JSON.stringify(reviews));renderProdutos();}
 mostrarUsuario();
 renderProdutos();
 </script></body>
